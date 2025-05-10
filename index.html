@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>complAIn – AI Support</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="chat-wrapper">
+    <h1>compl<span style="color: red;">AI</span>n Support</h1>
+    <textarea id="chat-input" maxlength="160" placeholder="Type your complaint here… (160 chars max)"></textarea>
+    <button id="send-btn">Send</button>
+    <div id="error-popup" class="hidden">
+      💀 ERROR 503: Artificial Indifference Detected.<br/>
+      Our AI is emotionally unavailable right now.
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
