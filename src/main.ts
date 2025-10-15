@@ -1,7 +1,12 @@
-const input = document.getElementById("chat-input") as HTMLTextAreaElement;
-const sendBtn = document.getElementById("send-btn") as HTMLButtonElement;
-const errorPopup = document.getElementById("error-popup") as HTMLDivElement;
-const chatWrapper = document.querySelector(".chat-wrapper") as HTMLDivElement;
+const input = document.getElementById("chat-input") as HTMLTextAreaElement | null;
+const sendBtn = document.getElementById("send-btn") as HTMLButtonElement | null;
+const errorPopup = document.getElementById("error-popup") as HTMLDivElement | null;
+const chatWrapper = document.querySelector(".chat-wrapper") as HTMLDivElement | null;
+
+if (!input || !sendBtn || !errorPopup || !chatWrapper) {
+  console.error("Missing required elements in DOM.");
+  throw new Error("Cannot start app: missing DOM elements.");
+}
 
 const meltdownMessages = [
   "💀 ERROR 503: Artificial Indifference Detected.",
@@ -21,62 +26,78 @@ const meltdownMessages = [
 ];
 
 let msgIndex = 0;
-
-function unleashMeltdown() {
-  if (msgIndex >= meltdownMessages.length) return;
-
-  const newLine = document.createElement("div");
-  newLine.textContent = meltdownMessages[msgIndex++];
-  errorPopup.appendChild(newLine);
-
-  // Add flicker randomly
-  if (Math.random() < 0.7) flickerEffect();
-
-  setTimeout(unleashMeltdown, 1500 + Math.random() * 1000);
-}
+let isRunning = false;
 
 function flickerEffect() {
   chatWrapper.classList.add("flicker");
-  setTimeout(() => {
-    chatWrapper.classList.remove("flicker");
-  }, 100 + Math.random() * 300);
+  setTimeout(() => chatWrapper.classList.remove("flicker"), 100 + Math.random() * 300);
 }
 
-function playStaticNoise(duration = 5000) {
-  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  const bufferSize = 4096;
-  const noise = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+function unleashMeltdown() {
+  if (!isRunning || msgIndex >= meltdownMessages.length) return;
 
-  noise.onaudioprocess = function (e) {
-    const output = e.outputBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1; // White noise
-    }
-  };
+  const line = document.createElement("div");
+  line.textContent = meltdownMessages[msgIndex++];
+  errorPopup.appendChild(line);
 
-  noise.connect(audioCtx.destination);
-
-  setTimeout(() => {
-    noise.disconnect();
-    audioCtx.close();
-  }, duration);
+  if (Math.random() < 0.7) flickerEffect();
+  setTimeout(unleashMeltdown, 1500 + Math.random() * 1000);
 }
 
-input.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && !event.shiftKey) {
-    event.preventDefault();
-    sendBtn.click();
+async function playStaticNoise(duration = 5000) {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    await audioCtx.resume();
+
+    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.2;
+    source.connect(gain).connect(audioCtx.destination);
+    source.start();
+
+    setTimeout(() => {
+      source.stop();
+      audioCtx.close();
+    }, duration);
+  } catch (err) {
+    console.warn("Audio playback failed:", err);
   }
-});
+}
 
 sendBtn.addEventListener("click", () => {
+  if (isRunning) return;
+
   const msg = input.value.trim();
-  if (msg.length > 0) {
-    errorPopup.classList.remove("hidden");
-    input.disabled = true;
-    sendBtn.disabled = true;
-    errorPopup.innerHTML = "";
-    playStaticNoise(8000);
-    unleashMeltdown();
+  if (!msg) return;
+
+  isRunning = true;
+  msgIndex = 0;
+
+  errorPopup.classList.remove("hidden");
+  errorPopup.innerHTML = "";
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  playStaticNoise(8000);
+  unleashMeltdown();
+
+  setTimeout(() => {
+    isRunning = false;
+    input.disabled = false;
+    sendBtn.disabled = false;
+  }, 9000);
+});
+
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendBtn.click();
   }
 });
